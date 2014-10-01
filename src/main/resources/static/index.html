@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="ISO-8859-1">
+<title></title>
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+<link rel="stylesheet" href="//ajax.googleapis.com/ajax/libs/jqueryui/1.11.1/themes/smoothness/jquery-ui.css" />
+<script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.11.1/jquery-ui.min.js"></script>
+<script src="js/sockjs-0.3.4.js"></script>
+<script src="js/stomp.js"></script>
+<script>
+	var stompClient = null;
+	var yourName = null
+	$(window).on("load", function() {
+		var socket = new SockJS('/hangman');
+		stompClient = Stomp.over(socket);
+		stompClient.connect("guest", "guest", function(frame) {
+			console.log('Connected: ' + frame);
+			stompClient.subscribe('/topic/users', function(users) {
+				showUsers(JSON.parse(users.body));
+			});
+			stompClient.subscribe('/topic/request', function(request) {
+				var uitdaging = JSON.parse(request.body);
+				if (uitdaging.uitgedaagde === yourName) {
+					$("#uitdaging").append("<p>U wordt uitgedaagd door: " + uitdaging.uitdager + "</p><button id='bevestig'>Aanvaarden</button>");
+					$("#bevestig").on("click", function(){
+						uitdaging.aanvaard = true;
+						stompClient.send("/app/aanvaard", {}, JSON.stringify(uitdaging));
+					});
+				}
+			});
+			stompClient.subscribe('/app/users', function(users){
+				showUsers(JSON.parse(users.body));
+			});
+		});
+	});
+	$(window).ready(function() {
+		$("#versturen").on("click", function() {
+			yourName = $("#naam").val();
+			if(naamcontrole()){
+				stompClient.send("/app/connect", {}, JSON.stringify({
+					'naam' : yourName
+				}));
+				$("#invoer").hide("fast");
+			}
+		});
+	});
+
+	$(window).on("beforeunload", function() {
+		stompClient.send("/app/verwijderen", {}, JSON.stringify({
+			'naam' : yourName
+		}));
+		stompClient.disconnect();
+	})
+
+	function showUsers(users) {
+		$("#users").empty();
+		for (var x = 0; x < users.personen.length; x++) {
+			if (users.personen[x].naam !== yourName) {
+				$("#users").append("<li>" + users.personen[x].naam + "</li>");
+			}
+		}
+		$("li").on("click", function() {
+			if(yourName !== null){
+			var oponent = $(this).text();
+			stompClient.send("/app/verzoek", {}, JSON.stringify({
+				'uitdager' : yourName,
+				'uitgedaagde' : oponent,
+				'aanvaard' : false
+			}));
+			stompClient.subscribe('/topic/waiting', function(uitdaging){
+				var uitdaging = JSON.parse(request.body);
+				if(uitdaging.uitdager === yourName){
+					if(uitdaging.aanvaard !== false){
+						// TODO: hier het woordt doen meegeven
+					}
+					else{
+						// TODO: hier zeggen dat de speler al bezig is met een spel
+					}
+				}
+			});
+		}
+		});
+	}
+	function naamcontrole(){
+		var vlag = true;
+		$(".error").remove();
+		$("li").each(function(index){
+			if($(this).text().toLowerCase() === yourName.toLowerCase()){
+				$("<p class='error'>De naam wordt al gebruikt</p>").insertAfter("#naam");
+				vlag = false;
+			}
+		});
+		return vlag;
+	}
+</script>
+</head>
+<body>
+	<div id="invoer">
+		<label>Naam: </label> <input type="text" id="naam">
+		<button id="versturen">Versturen</button>
+	</div>
+	<ul id="users">
+	</ul>
+	<div id="uitdaging"></div>
+</body>
+</html>
