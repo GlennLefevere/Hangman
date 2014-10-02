@@ -6,7 +6,12 @@ public class Uitdaging {
 	private boolean aanvaard = false;
 	private String woord = "";
 	private int pogingen = 0;
+	private boolean geraden = false;
 	
+	public boolean isGeraden() {
+		return geraden;
+	}
+
 	public boolean getAanvaard(){
 		return aanvaard;
 	}
