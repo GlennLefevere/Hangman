@@ -7,6 +7,10 @@ public class Persoon {
 		return naam;
 	}
 
+	public void setNaam(String naam) {
+		this.naam = naam;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;

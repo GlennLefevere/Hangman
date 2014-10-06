@@ -28,8 +28,8 @@ $(window).ready(function() {
 	$("#versturen").on("click", function() {
 		yourName = $("#naam").val();
 		if (yourName.indexOf(" ") < 0) {
-			$("<h1>Welcome " + yourName + "</h1>").insertBefore("#invoer");
 			if (naamcontrole()) {
+				$("<h1>Welcome " + yourName + "</h1>").insertBefore("#invoer");
 				versturen("/app/connect", {
 					'naam' : yourName
 				});
@@ -52,11 +52,11 @@ $(window).on("beforeunload", function() {
 
 function behandelRequest(tempUitdaging) {
 	var location = "/app/aanvaard";
-	if (tempUitdaging.uitgedaagde === yourName) {
+	if (tempUitdaging.uitgedaagde.naam === yourName) {
 		if (!tempUitdaging.aanvaard) {
 			if (uitdaging === null || uitdaging.geraden) {
 				uitdaging = tempUitdaging;
-				$("#uitdaging").append("<p>U wordt uitgedaagd door: " + uitdaging.uitdager + "</p><button id='bevestig'>Aanvaarden</button>");
+				$("#uitdaging").append("<p>U wordt uitgedaagd door: " + uitdaging.uitdager.naam + "</p><button id='bevestig'>Aanvaarden</button><button id='weigeren'>Weigeren</button>");
 				$("#bevestig").on("click", function() {
 					uitdaging.aanvaard = true;
 					$("#uitdaging").children().remove();
@@ -65,6 +65,11 @@ function behandelRequest(tempUitdaging) {
 					letters = [];
 					versturen(location, uitdaging);
 				});
+				$("#weigeren").on("click",function(){
+					versturen(location, uitdaging);
+					uitdaging = null;
+					$("#uitdaging").children().remove();
+				})
 			}
 			else {
 				versturen(location, tempUitdaging);
@@ -82,85 +87,140 @@ function versturen(locatie, waarde) {
 	stompClient.send(locatie, {}, JSON.stringify(waarde));
 }
 
+function overLoopList(teZoekenWaarde) {
+	var returnWaarde = null;
+	$("li").each(function() {
+		if ($(this).text().toLowerCase() === teZoekenWaarde.toLowerCase()) {
+			returnWaarde = this;
+		}
+	});
+	return returnWaarde;
+}
+
 function behandelResponse(uitgedaagde) {
-	var locatie = "/app/verzoek";
-	if (uitgedaagde.uitdager === yourName) {
+	$(".error").remove();
+	if (uitgedaagde.uitdager.naam === yourName) {
 		if (uitgedaagde.aanvaard) {
 			if (uitgedaagde.woord == "") {
-				$("#opgave").append("<label>Woord: </label><input type='text' id='woord' autofocus/><button id='start'>Start</button>");
-				$("#start").on("click", function() {
-					var woordje = $("#woord").val();
-					var result = woordje.match(patternCijfers);
-					if (woordje != "" && woordje.indexOf(" ") < 0 && result === null) {
-						uitgedaagde.woord = woordje;
-						versturen(locatie, uitgedaagde);
-						$("#opgave").children().remove();
-					}
-					else {
-						$("#error").remove();
-						$("#opgave").append("<p id='error' class='error'>Het woord mag geen spaties of nummers bevatten</p>");
-					}
-				});
+				nieuweUitdaging(uitgedaagde);
 			}
 			else {
-				if (uitgedaagde.geraden) {
-					$("#resultaat").append("<p>Het woord werd geraden door " + uitgedaagde.uitgedaagde);
-					$(this).text(uitgedaagde.uitgedaagde);
-				}
-				else {
-					if (uitgedaagde.pogingen > 0) {
-						$("li").each(function(index) {
-							var inhoud = $(this).text();
-							if (inhoud.indexOf(uitgedaagde.uitgedaagde) >= 0) {
-								if (uitgedaagde.pogingen != 10) {
-									$(this).text(uitgedaagde.uitgedaagde + " " + uitgedaagde.pogingen);
-								}
-								else {
-									$("#resultaat").append("<p>Het woord werdt niet geraden door " + uitgedaagde.uitgedaagde);
-									$(this).text(uitgedaagde.uitgedaagde);
-								}
-							}
-						});
-					}
-				}
+				resultaat(uitgedaagde);
 			}
 		}
 		else {
-			$("#opgave").append("<p>" + uitgedaagde.uitgedaagde + " is al een spel aan het spelen</p>");
+			var returnwaarde = overLoopList(uitgedaagde.uitgedaagde.naam);
+			$("<p class='error'>" + uitgedaagde.uitgedaagde.naam + " is al een spel aan het spelen</p>").insertAfter(returnwaarde);
 		}
 	}
 }
 
-function showUsers(users) {
-	var userbestaatNog = false;
-	$("#uitdaging").remove();
-	$("<p id='uitdaging'>Daag een van de volgende spelers uit:</p>").insertBefore("#users");
-	$("#users").empty();
-	for (var x = 0; x < users.personen.length; x++) {
-		if (uitdaging != null) {
-			if (uitdaging.woord === "") {
-				if (users.personen[x].naam === uitdaging.uitdager) {
-					userbestaatNog = true;
-				}
-			}
+function nieuweUitdaging(uitgedaagde){
+	var locatie = "/app/verzoek";
+	var returnValue = overLoopList(uitgedaagde.uitgedaagde.naam);
+	$("<div><label>Woord: </label><input type='text' autofocus/><button id='" + uitgedaagde.uitgedaagde.naam + "'>Start</button></div>").insertAfter(returnValue);
+	$("#" + uitgedaagde.uitgedaagde.naam + "").on("click", function() {
+		var woordje = $(this).prev().val();
+		var result = woordje.match(patternCijfers);
+		if (woordje != "" && woordje.indexOf(" ") < 0 && result === null) {
+			uitgedaagde.woord = woordje;
+			uitgedaagde.uitgedaagde.naam = $(this).attr('id');
+			versturen(locatie, uitgedaagde);
+			$(this).parent().remove()
 		}
-		if (users.personen[x].naam !== yourName) {
-			$("#users").append("<li>" + users.personen[x].naam + "</li>");
+		else {
+			$(this).parent().children(".error").remove();
+			$(this).parent().append("<p class='error'>Het woord mag geen spaties of nummers bevatten</p>");
+		}
+	});
+}
+
+function resultaat(uitgedaagde){
+	if (uitgedaagde.geraden) {
+		stompClient.subscribe('/app/users', function(users) {
+			showUsers(JSON.parse(users.body));
+		});
+		$("#resultaat").append("<p>Het woord werd geraden door " + uitgedaagde.uitgedaagde.naam);
+	}
+	else {
+		if (uitgedaagde.pogingen > 0) {
+			$("li").each(function(index) {
+				var inhoud = $(this).text();
+				if (inhoud.indexOf(uitgedaagde.uitgedaagde.naam) >= 0) {
+					if (uitgedaagde.pogingen != 10) {
+						$(this).text(uitgedaagde.uitgedaagde.naam + " " + uitgedaagde.pogingen);
+					}
+					else {
+						$("#resultaat").append("<p>Het woord werdt niet geraden door " + uitgedaagde.uitgedaagde.naam);
+						$(this).text(uitgedaagde.uitgedaagde.naam);
+					}
+				}
+			});
 		}
 	}
+}
+
+function userBestaatNog(users, naam){
+	var userBestaatNog = false;
+	for(var x = 0; x < users.length; x++){
+		if(users[x].naam === naam){
+			userBestaatNog = true;
+			break;
+		}
+	}
+	return userBestaatNog;
+}
+
+function userInLijst(personen){
+	for (var x = 0; x < personen.length; x++) {
+		if (personen[x].naam !== yourName) {
+			var returnwaarde = overLoopList(personen[x].naam);
+			if (returnwaarde === null) {
+				$("#users").append("<li>" + personen[x].naam + "</li>");
+			}
+		}
+	}
+}
+
+function usersControle(personen){
+	var userInLijsten = false;
+	$("li").each(function(index) {
+		var userInList = $(this).text();
+		for (var x = 0; x < personen.length; x++) {
+			if (userInList === personen[x].naam) {
+				userInLijsten = true;
+				break;
+			}
+		}
+		if (!userInLijsten) {
+			$(this).remove();
+		}
+		userInLijsten = false;
+	});
+}
+
+function showUsers(users) {
 	if (uitdaging != null) {
 		if (uitdaging.woord === "") {
-			if (!userbestaatNog) {
+			if(!userBestaatNog(users.personen, uitdaging.uitdager.naam)){
 				uitdaging = null;
 			}
 		}
 	}
-	$("li").on("click", function() {
+	userInLijst(users.personen);
+	usersControle(users.personen);
+	$("li").unbind("click").on("click", function(e) {
+		e.preventDefault();
+		console.log("geklikt");
 		if (yourName !== null) {
 			var oponent = $(this).text();
 			versturen("/app/verzoek", {
-				'uitdager' : yourName,
-				'uitgedaagde' : oponent
+				'uitdager' : {
+					"naam" : yourName
+				},
+				'uitgedaagde' : {
+					"naam" : oponent
+				}
 			});
 		}
 	});
@@ -169,16 +229,16 @@ function showUsers(users) {
 function naamcontrole() {
 	var vlag = true;
 	$(".error").remove();
-	$("li").each(function(index) {
-		if ($(this).text().toLowerCase() === yourName.toLowerCase()) {
-			$("<p class='error'>De naam wordt al gebruikt</p>").insertAfter("#versturen");
-			vlag = false;
-		}
-	});
+	var returnwaarde = overLoopList(yourName);
+	if(returnwaarde !== null){
+		$("<p class='error'>De naam wordt al gebruikt</p>").insertAfter("#versturen");
+		vlag = false;
+	}
 	return vlag;
 }
 
 function hangman() {
+	var poging = null;
 	$("#probeer").on("click", function() {
 		var letter = $("#poging").val();
 		var result = letter.match(patternLetters);
@@ -189,9 +249,12 @@ function hangman() {
 					toonPuntjesEnLetters();
 					woordControle();
 					if (!uitdaging.geraden) {
-						pogingenBekijken();
+						poging = pogingenBekijken();
 					}
 					versturen("/app/aanvaard", uitdaging);
+					if (poging) {
+						uitdaging = null;
+					}
 					hangman();
 				}
 				else {
@@ -209,8 +272,8 @@ function hangman() {
 }
 
 function fout(boodschap) {
-	$("#fout").remove();
-	$("<p class='error' id='fout'>" + boodschap + "</p>").insertAfter("#probeer");
+	$(".error").remove();
+	$("<p class='error'>" + boodschap + "</p>").insertAfter("#probeer");
 }
 
 function toonPuntjesEnLetters() {
@@ -233,6 +296,7 @@ function toonPuntjesEnLetters() {
 }
 
 function pogingenBekijken() {
+	var poging = false;
 	var foutpoging = 0;
 	var woord = uitdaging.woord;
 	for (var i = 0; i < letters.length; i++) {
@@ -245,10 +309,12 @@ function pogingenBekijken() {
 		$("#foto").children().remove();
 		$("#foto").append("<img src='images/" + foutpoging + ".png' alt='hangman foto'/>")
 		if (foutpoging === 10) {
+			poging = true;
 			$("#spel").children().remove();
 			$("#spel").append("<p>u hebt het woord niet gevonden het woord was: " + uitdaging.woord + "</p>");
 		}
 	}
+	return poging;
 }
 
 function woordControle() {

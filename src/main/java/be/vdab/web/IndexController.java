@@ -44,4 +44,15 @@ public class IndexController {
 		return personen;
 	}
 	
+	/*@SubscribeMapping("/uitdaging")
+	public Uitdaging uitdagingen(){
+		Persoon uitgedaagde = new Persoon();
+		uitgedaagde.setNaam("pol");
+		Persoon uitdager = new Persoon();
+		uitdager.setNaam("jos");
+		Uitdaging uitdaging = new Uitdaging();
+		uitdaging.setUitgedaagde(uitgedaagde);
+		uitdaging.setUitdager(uitdager);
+		return uitdaging;
+	}*/
 }
