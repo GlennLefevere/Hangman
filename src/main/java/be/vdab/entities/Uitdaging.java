@@ -1,13 +1,26 @@
 package be.vdab.entities;
 
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
+
 public class Uitdaging {
 	private Persoon uitdager = new Persoon();
 	private Persoon uitgedaagde = new Persoon();
 	private boolean aanvaard = false;
 	private String woord = "";
 	private int pogingen = 0;
+	private Set<Character> letters = new CopyOnWriteArraySet<Character>();
 	private boolean geraden = false;
+	private String weergave = "";
 	
+	public String getWeergave() {
+		return weergave;
+	}
+
+	public void setWeergave(String weergave) {
+		this.weergave = weergave;
+	}
+
 	public boolean isGeraden() {
 		return geraden;
 	}
@@ -54,5 +67,12 @@ public class Uitdaging {
 	public void setGeraden(boolean geraden) {
 		this.geraden = geraden;
 	}
-	
+
+	public Set<Character> getLetters() {
+		return letters;
+	}
+
+	public void setLetters(Set<Character> letters) {
+		this.letters = letters;
+	}
 }

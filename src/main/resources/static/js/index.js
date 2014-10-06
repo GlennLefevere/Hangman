@@ -1,5 +1,5 @@
 var stompClient = null;
-var yourName = null
+var yourName = null;
 var uitdaging = null;
 var letters = [];
 var patternCijfers = /[0-9]/g;
@@ -8,7 +8,7 @@ var patternLetters = /[a-z]/i;
 $(window).on("load", function() {
 	var socket = new SockJS('/hangman');
 	stompClient = Stomp.over(socket);
-	stompClient.connect("guest", "guest", function(frame) {
+	stompClient.connect("guest", "guest", function() {
 		stompClient.subscribe('/topic/users', function(users) {
 			showUsers(JSON.parse(users.body));
 		});
@@ -21,6 +21,19 @@ $(window).on("load", function() {
 		stompClient.subscribe('/topic/response', function(response) {
 			behandelResponse(JSON.parse(response.body));
 		});
+		stompClient.subscribe('/app/charachters', function(response) {
+			console.log(JSON.parse(response.body));
+		});
+		stompClient.subscribe('/topic/checked', function(response) {
+			console.log(JSON.parse(response.body));
+		});
+		versturen("/app/controle", {
+			"uitdager" : {"naam" : "jos"},
+			"uitgedaagde" : {"naam" : "pol"},
+			"aanvaard" : true,
+			"letters" : ["s","p","r","a","n","g"],
+			"woord" : "spring"
+		})
 	});
 });
 
@@ -57,6 +70,7 @@ function behandelRequest(tempUitdaging) {
 			if (uitdaging === null || uitdaging.geraden) {
 				uitdaging = tempUitdaging;
 				$("#uitdaging").append("<p>U wordt uitgedaagd door: " + uitdaging.uitdager.naam + "</p><button id='bevestig'>Aanvaarden</button><button id='weigeren'>Weigeren</button>");
+				
 				$("#bevestig").on("click", function() {
 					uitdaging.aanvaard = true;
 					$("#uitdaging").children().remove();
@@ -65,11 +79,12 @@ function behandelRequest(tempUitdaging) {
 					letters = [];
 					versturen(location, uitdaging);
 				});
+				
 				$("#weigeren").on("click",function(){
 					versturen(location, uitdaging);
 					uitdaging = null;
 					$("#uitdaging").children().remove();
-				})
+				});
 			}
 			else {
 				versturen(location, tempUitdaging);
@@ -101,7 +116,7 @@ function behandelResponse(uitgedaagde) {
 	$(".error").remove();
 	if (uitgedaagde.uitdager.naam === yourName) {
 		if (uitgedaagde.aanvaard) {
-			if (uitgedaagde.woord == "") {
+			if (uitgedaagde.woord === "") {
 				nieuweUitdaging(uitgedaagde);
 			}
 			else {
@@ -122,11 +137,11 @@ function nieuweUitdaging(uitgedaagde){
 	$("#" + uitgedaagde.uitgedaagde.naam + "").on("click", function() {
 		var woordje = $(this).prev().val();
 		var result = woordje.match(patternCijfers);
-		if (woordje != "" && woordje.indexOf(" ") < 0 && result === null) {
+		if (woordje !== "" && woordje.indexOf(" ") < 0 && result === null) {
 			uitgedaagde.woord = woordje;
 			uitgedaagde.uitgedaagde.naam = $(this).attr('id');
 			versturen(locatie, uitgedaagde);
-			$(this).parent().remove()
+			$(this).parent().remove();
 		}
 		else {
 			$(this).parent().children(".error").remove();
@@ -144,7 +159,7 @@ function resultaat(uitgedaagde){
 	}
 	else {
 		if (uitgedaagde.pogingen > 0) {
-			$("li").each(function(index) {
+			$("li").each(function() {
 				var inhoud = $(this).text();
 				if (inhoud.indexOf(uitgedaagde.uitgedaagde.naam) >= 0) {
 					if (uitgedaagde.pogingen != 10) {
@@ -161,14 +176,14 @@ function resultaat(uitgedaagde){
 }
 
 function userBestaatNog(users, naam){
-	var userBestaatNog = false;
+	var userbestaatNog = false;
 	for(var x = 0; x < users.length; x++){
 		if(users[x].naam === naam){
-			userBestaatNog = true;
+			userbestaatNog = true;
 			break;
 		}
 	}
-	return userBestaatNog;
+	return userbestaatNog;
 }
 
 function userInLijst(personen){
@@ -184,7 +199,7 @@ function userInLijst(personen){
 
 function usersControle(personen){
 	var userInLijsten = false;
-	$("li").each(function(index) {
+	$("li").each(function() {
 		var userInList = $(this).text();
 		for (var x = 0; x < personen.length; x++) {
 			if (userInList === personen[x].naam) {
@@ -200,7 +215,7 @@ function usersControle(personen){
 }
 
 function showUsers(users) {
-	if (uitdaging != null) {
+	if (uitdaging !== null) {
 		if (uitdaging.woord === "") {
 			if(!userBestaatNog(users.personen, uitdaging.uitdager.naam)){
 				uitdaging = null;
@@ -307,7 +322,7 @@ function pogingenBekijken() {
 	if (foutpoging > 0) {
 		uitdaging.pogingen = foutpoging;
 		$("#foto").children().remove();
-		$("#foto").append("<img src='images/" + foutpoging + ".png' alt='hangman foto'/>")
+		$("#foto").append("<img src='images/" + foutpoging + ".png' alt='hangman foto'/>");
 		if (foutpoging === 10) {
 			poging = true;
 			$("#spel").children().remove();

@@ -1,5 +1,7 @@
 package be.vdab.web;
 
+import java.util.Set;
+
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.simp.annotation.SubscribeMapping;
@@ -44,15 +46,40 @@ public class IndexController {
 		return personen;
 	}
 	
-	/*@SubscribeMapping("/uitdaging")
-	public Uitdaging uitdagingen(){
-		Persoon uitgedaagde = new Persoon();
-		uitgedaagde.setNaam("pol");
-		Persoon uitdager = new Persoon();
-		uitdager.setNaam("jos");
-		Uitdaging uitdaging = new Uitdaging();
-		uitdaging.setUitgedaagde(uitgedaagde);
-		uitdaging.setUitdager(uitdager);
+	@SubscribeMapping("/charachters")
+	public Character[] bla(){
+		Character[] letters = {'a', 'b'};
+		return letters;
+	}
+	
+	@MessageMapping("/controle")
+	@SendTo("/topic/checked")
+	public Uitdaging controle(Uitdaging uitdaging){
+		int teller = 0;
+		StringBuilder weergave = new StringBuilder();
+		String woord = uitdaging.getWoord();
+		char characters[] = woord.toCharArray();
+		for (int i = 0; i< characters.length; i++) {
+			for (Character letter : uitdaging.getLetters()) {
+				if(letter.equals(characters[i])){
+					weergave.append(characters[i]);
+					teller++;
+					break;
+				}
+			}
+			if(weergave.length() != i+1){
+				weergave.append(".");
+			}
+		}
+		uitdaging.setWeergave(weergave.toString());
+		if(teller == woord.length()){
+			uitdaging.setGeraden(true);
+		}
+		else{
+			uitdaging.setPogingen(uitdaging.getPogingen() + 1);
+		}
 		return uitdaging;
-	}*/
+	}
+
+	
 }

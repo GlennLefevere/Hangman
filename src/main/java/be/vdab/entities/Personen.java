@@ -16,12 +16,6 @@ public class Personen {
 	}
 	
 	public void removePersoon(Persoon persoon){
-		for (Persoon person : personen) {
-			if(person.getNaam().equalsIgnoreCase(persoon.getNaam())){
-				personen.remove(person);
-				break;
-			}
-		}
+		personen.remove(persoon);
 	}
 }
-//todo bij /verwijder een signiaal sturen dat de persoon gestopt is
